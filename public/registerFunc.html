@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro de Funcionário</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .form-step {
+            display: none;
+        }
+        .form-step.active {
+            display: block;
+        }
+        form {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            width: 300px;
+        }
+        form h2 {
+            text-align: center;
+        }
+        form input, form select, form button {
+            width: 100%;
+            margin: 10px 0;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        form button {
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        form button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <form id="registerUserForm" class="form-step active">
+        <h2>Registrar Usuário</h2>
+        <select id="tipousuario" required>
+            <option value="funcionario">Funcionário</option>
+        </select>
+        <input type="text" id="nome" placeholder="Nome Completo" required>
+        <input type="text" id="cpf" placeholder="CPF" required>
+        <input type="email" id="email" placeholder="Email" required>
+        <input type="password" id="senha" placeholder="Senha" required>
+        <button type="button" onclick="nextStep()">Continuar</button>
+    </form>
+
+    <form id="registerContatoForm" class="form-step">
+        <h2>Informações de Contato</h2>
+        <select id="tipocontato" required>
+            <option value="telefone">Telefone</option>
+            <option value="celular">Celular</option>
+        </select>
+        <input type="text" id="telefone" placeholder="Número" required>
+        <button type="button" onclick="nextStep()">Continuar</button>
+    </form>
+
+    <form id="registerEnderecoForm" class="form-step">
+        <h2>Informações de Endereço</h2>
+        <input type="text" id="cidade" placeholder="Cidade" required>
+        <input type="text" id="bairro" placeholder="Bairro" required>
+        <input type="text" id="logradouro" placeholder="Logradouro" required>
+        <input type="text" id="numero" placeholder="Número" required>
+        <input type="text" id="complemento" placeholder="Complemento">
+        <input type="text" id="estado" placeholder="Estado (Ex.: RN)" required>
+        <input type="text" id="cep" placeholder="CEP" required>
+        <button type="button" onclick="nextStep()">Continuar</button>
+    </form>
+
+    <form id="registerFuncForm" class="form-step">
+        <h2>Informações de Funcionário</h2>
+        <select id="cargofunc" required onchange="toggleSpecialtyField()">
+            <option value="atendente">Atendente</option>
+            <option value="medico">Médico</option>
+        </select>
+        <div id="specialtyField" style="display: none;">
+            <select id="especialidade">
+                <option value="1">Cardiologista</option>
+                <option value="2">Urologista</option>
+                <option value="3">Pediatra</option>
+            </select>
+            <input type="text" id="crm" placeholder="CRM">
+        </div>
+        <select id="carga_horaria" required>
+            <option value="20">20</option>
+            <option value="30">30</option>
+            <option value="40">40</option>
+            <option value="44">44</option>
+        </select>
+        <input type="number" id="salario" placeholder="Salário: 2000,00">
+        <button type="button" onclick="submitForm()">Concluir</button>
+    </form>
+
+    <script>
+        function toggleSpecialtyField() {
+            const cargofunc = document.getElementById('cargofunc').value;
+            const specialtyField = document.getElementById('specialtyField');
+            specialtyField.style.display = cargofunc === 'medico' ? 'block' : 'none';
+        }
+
+        let currentStep = 0;
+        const forms = document.querySelectorAll('.form-step');
+
+        function showStep(step) {
+            forms.forEach((form, index) => {
+                form.classList.toggle('active', index === step);
+            });
+        }
+
+        function nextStep() {
+            const currentForm = forms[currentStep];
+            if (currentForm.checkValidity()) {
+                if (currentStep < forms.length - 1) {
+                    currentStep++;
+                    showStep(currentStep);
+                }
+            } else {
+                currentForm.reportValidity();
+            }
+        }
+
+        async function submitForm() {
+            const cargofunc = document.getElementById('cargofunc').value;
+            const data = {
+                nome: document.getElementById('nome').value,
+                cpf: document.getElementById('cpf').value,
+                email: document.getElementById('email').value,
+                senha: document.getElementById('senha').value,
+                tipousuario: document.getElementById('tipousuario').value,
+                ativo: true,
+                logradouro: document.getElementById('logradouro').value,
+                numero: document.getElementById('numero').value,
+                complemento: document.getElementById('complemento').value,
+                bairro: document.getElementById('bairro').value,
+                cidade: document.getElementById('cidade').value,
+                estado: document.getElementById('estado').value,
+                cep: document.getElementById('cep').value,
+                tipocontato: document.getElementById('tipocontato').value,
+                telefone: document.getElementById('telefone').value,
+                cargofunc: document.getElementById('cargofunc').value,
+                salario: document.getElementById('salario').value,
+                salario: parseFloat(document.getElementById('salario').value.replace(',', '.')),
+                idespecialidade: cargofunc === 'medico' ? document.getElementById('especialidade').value : null,
+                crm: document.getElementById('crm').value,
+            };
+
+            const endpoint = cargofunc === 'medico'
+                ? 'http://localhost:3000/api/funcs/registerFuncMed'
+                : 'http://localhost:3000/api/funcs/registerFunc';
+
+
+            try {
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data),
+                });
+
+                if (response.ok) {
+                    alert('Cadastro concluído com sucesso!');
+                } else {
+                    const error = await response.json();
+                    alert('Erro: ' + error.error);
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Erro ao registrar usuário.');
+            }
+        }
+
+        showStep(currentStep);
+    </script>
+</body>
+</html>

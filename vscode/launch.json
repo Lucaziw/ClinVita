@@ -1,0 +1,12 @@
+{
+
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "chrome",
+            "request": "launch",
+            "name": "Open index.html",
+            "file": "c:\\Users\\thefo\\OneDrive\\Desktop\\ClinVita-main\\public\\index.html"
+        }
+    ]
+}

@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agendar Consulta</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #333;
+        }
+        select, input {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        select:focus, input:focus {
+            outline: none;
+            border-color: #4CAF50;
+            box-shadow: 0 0 5px rgba(76,175,80,0.2);
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        .step {
+            display: none;
+        }
+        .step.active {
+            display: block;
+        }
+        .horarios-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 10px;
+            margin-top: 15px;
+        }
+        .horario-item {
+            padding: 10px;
+            text-align: center;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            cursor: pointer;
+            background-color: #f8f8f8;
+        }
+        .horario-item:hover {
+            background-color: #e8f5e9;
+            border-color: #4CAF50;
+        }
+        .horario-item.selected {
+            background-color: #4CAF50;
+            color: white;
+            border-color: #4CAF50;
+        }
+        .error-message {
+            color: #f44336;
+            margin-top: 5px;
+            font-size: 14px;
+        }
+        .success-message {
+            color: #4CAF50;
+            margin-top: 15px;
+            padding: 10px;
+            background-color: #e8f5e9;
+            border-radius: 4px;
+            text-align: center;
+        }
+        .dias-semana {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .dia-semana {
+            padding: 10px 20px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            cursor: not-allowed;
+            background-color: #f5f5f5;
+            opacity: 0.5;
+        }
+        
+        .dia-semana.disponivel {
+            cursor: pointer;
+            background-color: #f8f8f8;
+            opacity: 1;
+        }
+        
+        .dia-semana.disponivel:hover {
+            background-color: #e8f5e9;
+            border-color: #4CAF50;
+        }
+        
+        .dia-semana.selecionado {
+            background-color: #4CAF50;
+            color: white;
+            border-color: #4CAF50;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Agendar Consulta</h1>
+
+        <div id="step1" class="step active">
+            <h2>Passo 1: Escolha a especialidade e o médico</h2>
+            <div class="form-group">
+                <label for="especialidade">Especialidade:</label>
+                <select id="especialidade" onchange="carregarMedicos()">
+                    <option value="">Selecione uma especialidade</option>
+                </select>
+                <div id="especialidade-error" class="error-message"></div>
+            </div>
+
+            <div class="form-group">
+                <label for="medico">Médico:</label>
+                <select id="medico" onchange="habilitarProximo()">
+                    <option value="">Selecione um médico</option>
+                </select>
+                <div id="medico-error" class="error-message"></div>
+            </div>
+
+            <button id="btnProximo" onclick="proximoPasso(2)" disabled>Próximo</button>
+        </div>
+
+        <div id="step2" class="step">
+            <h2>Passo 2: Escolha o dia e horário</h2>
+            
+            <div class="form-group">
+                <label>Dias de Atendimento:</label>
+                <div id="diasSemana" class="dias-semana">
+                    <div class="dia-semana" data-dia="1">Segunda</div>
+                    <div class="dia-semana" data-dia="2">Terça</div>
+                    <div class="dia-semana" data-dia="3">Quarta</div>
+                    <div class="dia-semana" data-dia="4">Quinta</div>
+                    <div class="dia-semana" data-dia="5">Sexta</div>
+                    <div class="dia-semana" data-dia="6">Sábado</div>
+                </div>
+            </div>
+    
+            <div class="form-group">
+                <label for="data">Data da Consulta:</label>
+                <input type="date" id="data" onchange="carregarHorarios()" min="" disabled>
+                <div id="data-error" class="error-message"></div>
+            </div>
+    
+            <div class="form-group">
+                <label>Horários Disponíveis:</label>
+                <div id="horarios" class="horarios-grid"></div>
+                <div id="horarios-error" class="error-message"></div>
+            </div>
+    
+            <button onclick="anteriorPasso(1)">Anterior</button>
+            <button id="btnConfirmar" onclick="confirmarAgendamento()" disabled>Confirmar Agendamento</button>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:3000/api';
+        let idPacienteLogado = null;
+        let horarioSelecionado = null;
+        let disponibilidadeMedico = [];
+
+        document.getElementById('data').min = new Date().toISOString().split('T')[0];
+
+        function decodeToken(token) {
+            if (!token) return null;
+            try {
+                const payload = JSON.parse(atob(token.split('.')[1])); 
+                return payload;
+            } catch (err) {
+                console.error('Erro ao decodificar o token:', err);
+                return null;
+            }
+        }
+
+        async function verificarAutenticacao() {
+            const token = localStorage.getItem('authToken');
+            if (!token) {
+                alert('Por favor, faça login para agendar uma consulta.');
+                window.location.href = '/login.html';
+                return;
+            }
+
+            const userData = decodeToken(token);
+            console.log('userData:', userData);
+
+            if (!userData || userData.tipoUsuario.toLowerCase() !== 'paciente') {
+                alert('Apenas pacientes podem agendar consultas.');
+                window.location.href = '/index.html';
+                return;
+            }
+
+            idPacienteLogado = userData.id;
+            return userData;
+        }
+
+        async function carregarEspecialidades() {
+            try {
+                const response = await fetch(`${API_URL}/agendamentos/especialidades`, {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                    }
+                });
+                
+                if (!response.ok) throw new Error('Erro ao carregar especialidades');
+                
+                const especialidades = await response.json();
+                console.log('Especialidades carregadas:', especialidades);
+                
+                const select = document.getElementById('especialidade');
+                select.innerHTML = '<option value="">Selecione uma especialidade</option>';
+                
+                especialidades.forEach(esp => {
+                    const option = document.createElement('option');
+                    option.value = esp.idespecialidade;
+                    option.textContent = esp.nome;
+                    select.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Erro ao carregar especialidades:', error);
+                document.getElementById('especialidade-error').textContent = 
+                    'Erro ao carregar especialidades. Por favor, tente novamente.';
+            }
+        }
+
+        async function carregarMedicos() {
+            const especialidadeSelect = document.getElementById('especialidade');
+            const idEspecialidade = especialidadeSelect.value;
+            const medicoSelect = document.getElementById('medico');
+            
+            medicoSelect.innerHTML = '<option value="">Selecione um médico</option>';
+            document.getElementById('btnProximo').disabled = true;
+            
+            if (!idEspecialidade) return;
+
+            try {
+                const response = await fetch(`${API_URL}/agendamentos/medicos/${idEspecialidade}`, {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                    }
+                });
+                if (!response.ok) throw new Error('Erro ao carregar médicos');
+                
+                const medicos = await response.json();
+                
+                medicos.forEach(medico => {
+                    const option = document.createElement('option');
+                    option.value = medico.idmedico;
+                    option.textContent = medico.nome;
+                    medicoSelect.appendChild(option);
+                });
+
+                medicoSelect.addEventListener('change', carregarDisponibilidadeMedico);
+            } catch (error) {
+                console.error('Erro:', error);
+                document.getElementById('medico-error').textContent = 'Erro ao carregar médicos';
+            }
+        }
+
+        async function carregarDisponibilidadeMedico() {
+            const idMedico = document.getElementById('medico').value;
+            if (!idMedico) return;
+
+            try {
+                const response = await fetch(`${API_URL}/agendamentos/disponibilidade/${idMedico}`, {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                    }
+                });
+                
+                if (!response.ok) throw new Error('Erro ao carregar disponibilidade');
+                disponibilidadeMedico = await response.json();
+                
+                console.log('Disponibilidade recebida do servidor:', disponibilidadeMedico);
+                console.log('Estrutura do primeiro registro:', {
+                    diasemana: typeof disponibilidadeMedico[0]?.diasemana,
+                    valor: disponibilidadeMedico[0]?.diasemana
+                });
+                
+                mostrarDiasDisponiveis();
+                document.getElementById('btnProximo').disabled = false;
+            } catch (error) {
+                console.error('Erro:', error);
+                document.getElementById('medico-error').textContent = 'Erro ao carregar disponibilidade do médico';
+            }
+        }
+        function mostrarDiasDisponiveis() {
+            const diasDisponiveis = [...new Set(disponibilidadeMedico.map(d => d.diasemana))];
+            const diasElements = document.querySelectorAll('.dia-semana');
+            
+            diasElements.forEach(diaElement => {
+                const dia = parseInt(diaElement.dataset.dia);
+                if (diasDisponiveis.includes(dia)) {
+                    diaElement.classList.add('disponivel');
+                    diaElement.onclick = () => selecionarDiaSemana(dia, diaElement);
+                } else {
+                    diaElement.classList.remove('disponivel', 'selecionado');
+                    diaElement.onclick = null;
+                }
+            });
+        }
+        function selecionarDiaSemana(dia, elemento) {
+           
+            document.querySelectorAll('.dia-semana').forEach(el => {
+                el.classList.remove('selecionado');
+            });
+            
+           
+            elemento.classList.add('selecionado');
+            
+           
+            const dateInput = document.getElementById('data');
+            dateInput.disabled = false;
+            
+           
+            configurarDatasPermitidas(dia);
+        }
+        function configurarDatasPermitidas(diaSemana) {
+            const dateInput = document.getElementById('data');
+            const hoje = new Date();
+            dateInput.min = hoje.toISOString().split('T')[0];
+            
+            dateInput.value = '';
+            
+            dateInput.onchange = function() {
+                const selectedDate = new Date(this.value + 'T00:00:00');
+                let selectedDiaSemana = selectedDate.getDay();
+                selectedDiaSemana = selectedDiaSemana === 0 ? 7 : selectedDiaSemana;
+                
+                console.log('Data selecionada:', selectedDate);
+                console.log('Dia da semana calculado:', selectedDiaSemana);
+                console.log('Dia esperado:', diaSemana);
+                
+                if (selectedDiaSemana !== diaSemana) {
+                    this.value = '';
+                    document.getElementById('data-error').textContent = 
+                        'Por favor, selecione uma data que corresponda ao dia da semana escolhido';
+                    return;
+                }
+                
+                document.getElementById('data-error').textContent = '';
+                carregarHorarios();
+            };
+        }
+        async function carregarHorarios() {
+            const horariosDiv = document.getElementById('horarios');
+            const dataInput = document.getElementById('data');
+            const idMedico = document.getElementById('medico').value;
+            
+            console.log('Iniciando carregamento de horários:', {
+                data: dataInput.value,
+                idMedico: idMedico,
+                disponibilidadeMedico: disponibilidadeMedico
+            });
+            
+            if (!dataInput.value || !idMedico) {
+                console.log('Data ou médico não selecionados');
+                return;
+            }
+
+            horariosDiv.innerHTML = '';
+            document.getElementById('btnConfirmar').disabled = true;
+            document.getElementById('horarios-error').textContent = '';
+            
+            try {
+                const dataSelecionada = new Date(dataInput.value + 'T00:00:00');
+                let diaSemana = dataSelecionada.getDay();
+                diaSemana = diaSemana === 0 ? 7 : diaSemana;
+                
+                console.log('Data selecionada:', dataSelecionada);
+                console.log('Dia da semana calculado:', diaSemana);
+                console.log('Disponibilidade do médico:', disponibilidadeMedico);
+
+                const horariosDisponiveis = disponibilidadeMedico.filter(d => 
+                    parseInt(d.diasemana) === diaSemana
+                );
+                
+                console.log('Horários filtrados:', horariosDisponiveis);
+
+                if (horariosDisponiveis.length === 0) {
+                    document.getElementById('horarios-error').textContent = 
+                        'Não há horários disponíveis para este dia';
+                    return;
+                }
+
+                try {
+                    
+                    const responseOcupados = await fetch(`${API_URL}/agendamentos/horarios-ocupados`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                        },
+                        body: JSON.stringify({
+                            idMedico,
+                            data: dataInput.value
+                        })
+                    });
+
+                    let horariosOcupados = [];
+                    if (responseOcupados.ok) {
+                        horariosOcupados = await responseOcupados.json();
+                        console.log('Horários ocupados:', horariosOcupados);
+                    }
+                    
+                    
+                    horariosDisponiveis.forEach(periodo => {
+                        const inicio = new Date(`2000-01-01T${periodo.horainicio}`);
+                        const fim = new Date(`2000-01-01T${periodo.horafim}`);
+                        
+                        
+                        while (inicio < fim) {
+                            const horario = inicio.toTimeString().slice(0, 5);
+                            
+                            
+                            if (!horariosOcupados.includes(horario)) {
+                                const div = document.createElement('div');
+                                div.className = 'horario-item';
+                                div.textContent = horario;
+                                div.onclick = () => selecionarHorario(div, horario);
+                                horariosDiv.appendChild(div);
+                            }
+                            
+                            
+                            inicio.setMinutes(inicio.getMinutes() + 30);
+                        }
+                    });
+
+                } catch (error) {
+                    console.error('Erro ao verificar horários ocupados:', error);
+                   
+                    horariosDisponiveis.forEach(periodo => {
+                        const inicio = new Date(`2000-01-01T${periodo.horainicio}`);
+                        const fim = new Date(`2000-01-01T${periodo.horafim}`);
+                        
+                        while (inicio < fim) {
+                            const horario = inicio.toTimeString().slice(0, 5);
+                            const div = document.createElement('div');
+                            div.className = 'horario-item';
+                            div.textContent = horario;
+                            div.onclick = () => selecionarHorario(div, horario);
+                            horariosDiv.appendChild(div);
+                            
+                            inicio.setMinutes(inicio.getMinutes() + 30);
+                        }
+                    });
+                }
+
+            } catch (error) {
+                console.error('Erro ao carregar horários:', error);
+                document.getElementById('horarios-error').textContent = 
+                    'Erro ao carregar horários disponíveis. Por favor, tente novamente.';
+            }
+        }
+
+        
+        function selecionarHorario(elemento, horario) {
+            document.querySelectorAll('.horario-item').forEach(item => {
+                item.classList.remove('selected');
+            });
+            
+            elemento.classList.add('selected');
+            horarioSelecionado = horario;
+            document.getElementById('btnConfirmar').disabled = false;
+        }
+
+        function habilitarProximo() {
+            const medicoSelecionado = document.getElementById('medico').value;
+            document.getElementById('btnProximo').disabled = !medicoSelecionado;
+        }
+
+        function proximoPasso(passo) {
+            document.querySelector('.step.active').classList.remove('active');
+            document.getElementById(`step${passo}`).classList.add('active');
+        }
+
+        function anteriorPasso(passo) {
+            document.querySelector('.step.active').classList.remove('active');
+            document.getElementById(`step${passo}`).classList.add('active');
+        }
+
+        async function confirmarAgendamento() {
+            const idMedico = document.getElementById('medico').value;
+            const data = document.getElementById('data').value;
+            const idUser = idPacienteLogado;
+            
+            if (!idMedico || !data || !horarioSelecionado || !idUser) {
+                alert('Por favor, preencha todos os campos!');
+                return;
+            }
+
+            try {
+               
+                const responsePaciente = await fetch(`${API_URL}/agendamentos/buscar-paciente/${idUser}`, {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                    }
+                });
+
+                if (!responsePaciente.ok) {
+                    throw new Error('Erro ao buscar dados do paciente');
+                }
+
+                const dadosPaciente = await responsePaciente.json();
+                const idPaciente = dadosPaciente.idpaciente;
+
+               
+                const response = await fetch(`${API_URL}/agendamentos/novo`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                    },
+                    body: JSON.stringify({
+                        idPaciente: idPaciente,
+                        idMedico: parseInt(idMedico),
+                        dataConsulta: data,
+                        horaConsulta: horarioSelecionado,
+                        status: "confirmado"
+                    })
+                });
+
+                if (!response.ok) {
+                    const erro = await response.json();
+                    throw new Error(erro.message || 'Erro ao realizar agendamento');
+                }
+
+                const successDiv = document.createElement('div');
+                successDiv.className = 'success-message';
+                successDiv.textContent = 'Agendamento realizado com sucesso!';
+                document.querySelector('.container').appendChild(successDiv);
+
+                setTimeout(() => {
+                    window.location.href = 'c:\\Users\\thefo\\OneDrive\\Desktop\\novoclin\\ClinVita\\public\\index.html';
+                }, 2000);
+
+            } catch (error) {
+                console.error('Erro ao confirmar agendamento:', error);
+                alert(error.message || 'Erro ao realizar agendamento. Por favor, tente novamente.');
+            }
+        }
+
+        window.onload = async () => {
+            await verificarAutenticacao();
+            await carregarEspecialidades();
+        };
+    </script>
+</body>
+</html>

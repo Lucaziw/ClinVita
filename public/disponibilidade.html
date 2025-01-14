@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Disponibilidade Médico</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        select, input {
+            margin: 5px;
+            padding: 5px;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .horario-container {
+            border: 1px solid #ddd;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+        .error {
+            color: red;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>Minha Disponibilidade</h1>
+    
+    <div id="errorMessage" class="error"></div>
+    
+    <div class="form-group">
+        <label for="diaSemana">Dia da Semana:</label>
+        <select id="diaSemana">
+            <option value="1">Segunda-feira</option>
+            <option value="2">Terça-feira</option>
+            <option value="3">Quarta-feira</option>
+            <option value="4">Quinta-feira</option>
+            <option value="5">Sexta-feira</option>
+            <option value="6">Sábado</option>
+            <option value="7">Domingo</option>
+        </select>
+    </div>
+
+    <div class="form-group">
+        <label for="horaInicio">Hora Início:</label>
+        <input type="time" id="horaInicio" min="07:00" max="20:00">
+        
+        <label for="horaFim">Hora Fim:</label>
+        <input type="time" id="horaFim" min="07:00" max="20:00">
+    </div>
+
+    <button onclick="adicionarDisponibilidade()">Adicionar Disponibilidade</button>
+
+    <h2>Minhas Disponibilidades</h2>
+    <div id="listaDisponibilidades"></div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:3000'
+        function decodeToken(token) {
+            if (!token) return null;
+            try {
+                const payload = JSON.parse(atob(token.split('.')[1])); 
+                return payload;
+            } catch (err) {
+                console.error('Erro ao decodificar o token:', err);
+                return null;
+            }
+        }
+
+        const token = localStorage.getItem('authToken');
+        const userData = decodeToken(token);
+        console.log('userData:', userData);
+        console.log('tipousuario:', userData ? userData.tipoUsuario : 'Sem dados');
+
+        if (!userData) {
+            alert('Você precisa fazer login.');
+            window.location.href = 'login.html';
+        } else if (userData.tipoUsuario !== 'medico') {
+            alert('Acesso restrito a médicos.');
+            window.location.href = 'index.html';
+        }
+
+        function mostrarErro(mensagem) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = mensagem;
+            setTimeout(() => {
+                errorDiv.textContent = '';
+            }, 5000);
+        }
+
+        function validarHorario(horaInicio, horaFim) {
+            const inicio = new Date(`2000-01-01T${horaInicio}`);
+            const fim = new Date(`2000-01-01T${horaFim}`);
+            
+            const minTime = new Date(`2000-01-01T07:00`);
+            const maxTime = new Date(`2000-01-01T20:00`);
+            
+            if (inicio < minTime || fim > maxTime) {
+                return 'O horário deve estar entre 7h e 20h';
+            }
+            
+            if (inicio >= fim) {
+                return 'A hora de início deve ser menor que a hora de fim';
+            }
+            
+            return null;
+        }
+
+        async function adicionarDisponibilidade() {
+            const diaSemana = document.getElementById('diaSemana').value;
+            const horaInicio = document.getElementById('horaInicio').value;
+            const horaFim = document.getElementById('horaFim').value;
+
+            if (!horaInicio || !horaFim) {
+                mostrarErro('Por favor, preencha todos os horários');
+                return;
+            }
+
+            const erroValidacao = validarHorario(horaInicio, horaFim);
+            if (erroValidacao) {
+                mostrarErro(erroValidacao);
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/disponibilidade`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        diaSemana: parseInt(diaSemana),
+                        horaInicio,
+                        horaFim
+                    })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.message || 'Erro ao adicionar disponibilidade');
+                }
+
+                alert('Disponibilidade adicionada com sucesso!');
+                carregarDisponibilidades();
+            } catch (error) {
+                console.error('Erro:', error);
+                mostrarErro(error.message || 'Erro ao comunicar com o servidor');
+            }
+        }
+
+        async function carregarDisponibilidades() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/disponibilidade`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Erro ao carregar disponibilidades');
+                }
+
+                const disponibilidades = await response.json();
+                
+                const container = document.getElementById('listaDisponibilidades');
+                container.innerHTML = '';
+
+                const diasSemana = ['', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
+                
+                disponibilidades.sort((a, b) => {
+                    if (a.diasemana !== b.diasemana) {
+                        return a.diasemana - b.diasemana;
+                    }
+                    return a.horainicio.localeCompare(b.horainicio);
+                });
+
+                disponibilidades.forEach(disp => {
+                    const div = document.createElement('div');
+                    div.className = 'horario-container';
+                    div.innerHTML = `
+                        <p>Dia: ${diasSemana[disp.diasemana]}</p>
+                        <p>Horário: ${disp.horainicio.substring(0, 5)} - ${disp.horafim.substring(0, 5)}</p>
+                        <button onclick="excluirDisponibilidade(${disp.iddisponibilidade})">Excluir</button>
+                    `;
+                    container.appendChild(div);
+                });
+            } catch (error) {
+                console.error('Erro:', error);
+                mostrarErro('Erro ao carregar disponibilidades');
+            }
+        }
+
+        async function excluirDisponibilidade(id) {
+            if (confirm('Deseja realmente excluir esta disponibilidade?')) {
+                try {
+                    const response = await fetch(`${API_BASE_URL}/api/disponibilidade/${id}`, {
+                        method: 'DELETE',
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+
+                    if (!response.ok) {
+                        throw new Error('Erro ao excluir disponibilidade');
+                    }
+
+                    alert('Disponibilidade excluída com sucesso!');
+                    carregarDisponibilidades();
+                } catch (error) {
+                    console.error('Erro:', error);
+                    mostrarErro('Erro ao excluir disponibilidade');
+                }
+            }
+        }
+
+        carregarDisponibilidades();
+    </script>
+</body>
+</html>

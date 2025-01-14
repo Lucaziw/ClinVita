@@ -1,0 +1,1080 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Acompanhar Agendamentos</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .agendamento-card {
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 4px;
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 15px;
+        }
+        .agendamento-info {
+            display: grid;
+            gap: 8px;
+        }
+        .agendamento-acoes {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .status-badge {
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 14px;
+            font-weight: bold;
+            text-align: center;
+        }
+        .status-confirmado {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+        }
+        .status-cancelado {
+            background-color: #ffebee;
+            color: #c62828;
+        }
+        button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.3s;
+        }
+        .btn-editar {
+            background-color: #2196F3;
+            color: white;
+        }
+        .btn-cancelar {
+            background-color: #f44336;
+            color: white;
+        }
+        button:hover {
+            opacity: 0.9;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+        .modal-content {
+            background-color: white;
+            margin: 15% auto;
+            padding: 20px;
+            border-radius: 8px;
+            width: 80%;
+            max-width: 500px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        .modal-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .sem-agendamentos {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+        .nome-paciente {
+            font-weight: bold;
+            color: #1976D2;
+        }
+        .filtros-container {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border: 1px solid #ddd;
+        }
+        .filtros-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        .filtro-grupo {
+            display: flex;
+            flex-direction: column;
+        }
+        .filtro-grupo label {
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #333;
+        }
+        .filtro-grupo select,
+        .filtro-grupo input {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .filtros-botoes {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+        .btn-filtrar {
+            background-color: #4CAF50;
+            color: white;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .btn-limpar {
+            background-color: #9e9e9e;
+            color: white;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .btn-filtrar:hover,
+        .btn-limpar:hover {
+            opacity: 0.9;
+        }
+        .modal-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .btn-primario {
+            background-color: #4CAF50;
+            color: white;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .btn-secundario {
+            background-color: #9e9e9e;
+            color: white;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .paciente-info {
+            margin: 20px 0;
+            line-height: 1.6;
+        }
+
+        .paciente-info p {
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Meus Agendamentos</h1>
+        
+        <!-- Seção de Filtros -->
+        <div class="filtros-container">
+            <div class="filtros-grid">
+                <div class="filtro-grupo">
+                    <label for="filtroStatus">Status</label>
+                    <select id="filtroStatus">
+                        <option value="">Todos</option>
+                        <option value="CONFIRMADO">Confirmado</option>
+                        <option value="CANCELADO">Cancelado</option>
+                        <option value="CONCLUIDO">Concluído</option>
+                    </select>
+                </div>
+                
+                <div class="filtro-grupo">
+                    <label for="filtroEspecialidade">Especialidade</label>
+                    <select id="filtroEspecialidade">
+                        <option value="">Todas</option>
+                    </select>
+                </div>
+                
+                <div class="filtro-grupo">
+                    <label for="filtroOrdenacao">Ordenar por Data</label>
+                    <select id="filtroOrdenacao">
+                        <option value="">Padrão</option>
+                        <option value="mais_recente">Mais Recente</option>
+                        <option value="mais_antiga">Mais Antiga</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="filtros-botoes">
+                <button class="btn-limpar" onclick="limparFiltros()">Limpar Filtros</button>
+                <button class="btn-filtrar" onclick="aplicarFiltros()">Aplicar Filtros</button>
+            </div>
+        </div>
+        
+        <div id="agendamentos-lista"></div>
+    </div>
+
+    <!-- Modal de Edição -->
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <h2>Editar Agendamento</h2>
+            <form id="editForm">
+                <div class="form-group">
+                    <label for="novaData">Nova Data:</label>
+                    <input type="date" id="novaData" required>
+                </div>
+                <div class="form-group">
+                    <label for="novoHorario">Novo Horário:</label>
+                    <select id="novoHorario" required>
+                        <!-- Será preenchido via JavaScript -->
+                    </select>
+                </div>
+                <div class="modal-buttons">
+                    <button type="button" onclick="fecharModal()">Cancelar</button>
+                    <button type="submit" class="btn-editar">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</body>
+    <script>
+        window.fecharModal = function() {
+            const modal = document.getElementById('editModal');
+            if (modal) {
+                modal.style.display = 'none';
+            
+                const form = document.getElementById('editForm');
+                if (form) {
+                    form.reset();
+                }
+            
+                window.agendamentoEmEdicao = null;
+                window.dadosAgendamentoAtual = null;
+            }
+        };
+
+        window.fecharModaldetalhes = function() {
+            const modal = document.getElementById('modalDetalhes');
+            if (modal) {
+                modal.style.display = 'none';
+            }
+        };
+
+        window.concluirConsulta = async function(idAgendamento) {
+            try {
+                const response = await fetch(`${API_URL}/agendamentos/${idAgendamento}/concluir`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.message || 'Erro ao concluir consulta');
+                }
+
+                alert('Consulta marcada como concluída com sucesso!');
+                fecharModaldetalhes();
+                await carregarAgendamentosMedico();
+            } catch (error) {
+                console.error('Erro:', error);
+                alert(error.message || 'Erro ao concluir consulta');
+            }
+        };
+        const API_URL = 'http://localhost:3000/api';
+        let tipoUsuario = '';
+        let idPaciente = null;
+        let idMedico = null;
+        let todosAgendamentos = [];
+
+        function decodeToken(token) {
+            if (!token) return null;
+            try {
+                const payload = JSON.parse(atob(token.split('.')[1])); 
+                return payload;
+            } catch (err) {
+                console.error('Erro ao decodificar o token:', err);
+                return null;
+            }
+        }
+
+        async function verificarAutenticacao() {
+            const token = localStorage.getItem('authToken');
+            if (!token) {
+                alert('Por favor, faça login para continuar.');
+                window.location.href = '/login.html';
+                return;
+            }
+
+            const userData = decodeToken(token);
+            if (!userData) {
+                alert('Sessão inválida. Por favor, faça login novamente.');
+                window.location.href = '/login.html';
+                return;
+            }
+
+            tipoUsuario = userData.tipoUsuario;
+
+            if (tipoUsuario === 'paciente') {
+                try {
+                    const response = await fetch(`${API_URL}/agendamentos/buscar-paciente/${userData.id}`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    if (!response.ok) throw new Error('Erro ao buscar dados do paciente');
+                    const data = await response.json();
+                    console.log('Dados do paciente:', data);
+                    idPaciente = data.idpaciente;
+                    await carregarAgendamentosPaciente();
+                } catch (error) {
+                    console.error('Erro:', error);
+                    alert('Erro ao carregar dados do paciente');
+                }
+            } else if (tipoUsuario === 'medico') {
+                try {
+                
+                    const response = await fetch(`${API_URL}/agendamentos/buscar-medico/${userData.id}`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    if (!response.ok) throw new Error('Erro ao buscar dados do médico');
+                    const data = await response.json();
+                    idMedico = data.idmedico;
+                    await carregarAgendamentosMedico();
+                } catch (error) {
+                    console.error('Erro:', error);
+                    alert('Erro ao carregar dados do médico');
+                }
+            }
+        }
+
+        function carregarEspecialidades(agendamentos) {
+            const especialidades = [...new Set(agendamentos.map(a => a.especialidade))];
+            const selectEspecialidade = document.getElementById('filtroEspecialidade');
+            selectEspecialidade.innerHTML = '<option value="">Todas</option>';
+            
+            especialidades.forEach(esp => {
+                const option = document.createElement('option');
+                option.value = esp;
+                option.textContent = esp;
+                selectEspecialidade.appendChild(option);
+            });
+        }
+
+        async function carregarAgendamentosPaciente() {
+            try {
+                const response = await fetch(`${API_URL}/agendamentos/paciente/${idPaciente}/agendamentos`, {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                    }
+                });
+                
+                if (!response.ok) throw new Error('Erro ao carregar agendamentos');
+                
+                todosAgendamentos = await response.json();
+                carregarEspecialidades(todosAgendamentos);
+                mostrarAgendamentos(todosAgendamentos, 'paciente');
+            } catch (error) {
+                console.error('Erro:', error);
+                alert('Erro ao carregar agendamentos');
+            }
+        }
+
+        async function carregarAgendamentosMedico() {
+            console.log('ID do médico:', idMedico);
+            try {
+                const response = await fetch(`${API_URL}/agendamentos/medico/${idMedico}`, {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                    }
+                });
+                
+                if (!response.ok) throw new Error('Erro ao carregar agendamentos');
+                
+                todosAgendamentos = await response.json();
+                carregarEspecialidades(todosAgendamentos);
+                mostrarAgendamentos(todosAgendamentos, 'medico');
+            } catch (error) {
+                console.error('Erro:', error);
+                alert('Erro ao carregar agendamentos');
+            }
+        }
+
+        function ordenarEOrganizarAgendamentos(agendamentos, filtros = {}) {
+            let agendamentosFiltrados = [...agendamentos];
+            
+            if (filtros.status) {
+                agendamentosFiltrados = agendamentosFiltrados.filter(a => 
+                    a.status.toUpperCase() === filtros.status.toUpperCase());
+            }
+            
+            if (filtros.especialidade) {
+                agendamentosFiltrados = agendamentosFiltrados.filter(a => 
+                    a.especialidade === filtros.especialidade);
+            }
+            
+            if (filtros.ordenacao) {
+                agendamentosFiltrados.sort((a, b) => {
+                    const dataA = new Date(a.dataconsulta);
+                    const dataB = new Date(b.dataconsulta);
+                    return filtros.ordenacao === 'mais_recente' ? 
+                        dataB - dataA : dataA - dataB;
+                });
+            }
+            
+            mostrarAgendamentos(agendamentosFiltrados, tipoUsuario);
+        }
+
+        function aplicarFiltros() {
+            const filtros = {
+                status: document.getElementById('filtroStatus').value,
+                especialidade: document.getElementById('filtroEspecialidade').value,
+                ordenacao: document.getElementById('filtroOrdenacao').value
+            };
+            
+            ordenarEOrganizarAgendamentos(todosAgendamentos, filtros);
+        }
+
+        function limparFiltros() {
+            document.getElementById('filtroStatus').value = '';
+            document.getElementById('filtroEspecialidade').value = '';
+            document.getElementById('filtroOrdenacao').value = '';
+            
+            mostrarAgendamentos(todosAgendamentos, tipoUsuario);
+        }
+        function mostrarAgendamentos(agendamentos, tipo) {
+            const container = document.getElementById('agendamentos-lista');
+            container.innerHTML = '';
+
+            if (agendamentos.length === 0) {
+                container.innerHTML = '<div class="sem-agendamentos">Nenhum agendamento encontrado.</div>';
+                return;
+            }
+
+            agendamentos.forEach(agendamento => {
+                const data = new Date(agendamento.dataconsulta);
+                const diaSemana = new Intl.DateTimeFormat('pt-BR', { weekday: 'long' }).format(data);
+                const dataFormatada = data.toLocaleDateString('pt-BR');
+                
+                const card = document.createElement('div');
+                card.className = 'agendamento-card';
+                
+                if (tipo === 'medico') {
+                    card.innerHTML = `
+                        <div class="agendamento-info">
+                            <div class="nome-paciente"><strong>Paciente:</strong> ${agendamento.nome_paciente}</div>
+                            <div><strong>Data:</strong> ${diaSemana}, ${dataFormatada}</div>
+                            <div><strong>Horário:</strong> ${agendamento.horaconsulta.slice(0, 5)}</div>
+                            <div><strong>Status:</strong> 
+                                <span class="status-badge status-${agendamento.status.toLowerCase()}">
+                                    ${agendamento.status}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="agendamento-acoes">
+                            <button class="btn-info" onclick="verDetalhesPaciente(${agendamento.idpaciente}, ${agendamento.idagendamento})">
+                                Ver Detalhes
+                            </button>
+                        </div>
+                    `;
+                } else {
+                    card.innerHTML = `
+                        <div class="agendamento-info">
+                            <div><strong>Médico:</strong> ${agendamento.nome_medico}</div>
+                            <div><strong>Especialidade:</strong> ${agendamento.especialidade}</div>
+                            <div><strong>Data:</strong> ${diaSemana}, ${dataFormatada}</div>
+                            <div><strong>Horário:</strong> ${agendamento.horaconsulta.slice(0, 5)}</div>
+                            <div><strong>Status:</strong> 
+                                <span class="status-badge status-${agendamento.status.toLowerCase()}">
+                                    ${agendamento.status}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="agendamento-acoes">
+                            <button class="btn-editar" onclick='abrirModalEdicao({
+                                "id": "${agendamento.idagendamento}",
+                                "medico": "${agendamento.nome_medico}",
+                                "especialidade": "${agendamento.especialidade}"
+                            })'>
+                                Editar
+                            </button>
+                            <button class="btn-cancelar" onclick="cancelarAgendamento(${agendamento.idagendamento})">
+                                Cancelar
+                            </button>
+                        </div>
+                    `;
+                }
+                
+                container.appendChild(card);
+            });
+        }
+        async function verDetalhesPaciente(idPaciente, idAgendamento) {
+            try {
+                console.log('Tentando buscar detalhes do paciente:', idPaciente);
+            
+                const response = await fetch(`${API_URL}/agendamentos/pacientes/${idPaciente}/detalhes`, {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                    }
+                });
+                
+            
+                const contentType = response.headers.get("content-type");
+                if (!contentType || !contentType.includes("application/json")) {
+                    throw new Error(`Resposta inválida do servidor: ${await response.text()}`);
+                }
+
+                if (!response.ok) {
+                    if (response.status === 404) {
+                        throw new Error('Paciente não encontrado');
+                    }
+                    throw new Error(`Erro ${response.status}: ${response.statusText}`);
+                }
+                
+                const paciente = await response.json();
+                if (!paciente) {
+                    throw new Error('Dados do paciente não encontrados');
+                }
+                
+            
+                let modalDetalhes = document.getElementById('modalDetalhes');
+                if (!modalDetalhes) {
+                    modalDetalhes = document.createElement('div');
+                    modalDetalhes.id = 'modalDetalhes';
+                    modalDetalhes.className = 'modal';
+                    document.body.appendChild(modalDetalhes);
+                }
+                
+            
+                const hoje = new Date();
+                const nascimento = new Date(paciente.datanasc);
+                let idade = hoje.getFullYear() - nascimento.getFullYear();
+                const mesAtual = hoje.getMonth();
+                const mesNascimento = nascimento.getMonth();
+                
+                if (mesNascimento > mesAtual || 
+                    (mesNascimento === mesAtual && nascimento.getDate() > hoje.getDate())) {
+                    idade--;
+                }
+                
+                modalDetalhes.innerHTML = `
+                    <div class="modal-content">
+                        <h2>Detalhes do Paciente</h2>
+                        <div class="paciente-info">
+                            <p><strong>Nome:</strong> ${paciente.nome}</p>
+                            <p><strong>Idade:</strong> ${idade} anos</p>
+                            <p><strong>Gênero:</strong> ${paciente.genero === 'M' ? 'Masculino' : 'Feminino'}</p>
+                            <p><strong>Tipo Sanguíneo:</strong> ${paciente.tipo_sanguineo || 'Não informado'}</p>
+                            <p><strong>Observações:</strong> ${paciente.observacoes || 'Nenhuma observação registrada'}</p>
+                        </div>
+                        <div class="modal-buttons">
+                            <button onclick="fecharModaldetalhes()" class="btn-secundario">Fechar</button>
+                            <button onclick="concluirConsulta(${idAgendamento})" class="btn-primario">
+                                Marcar como Concluída
+                            </button>
+                        </div>
+                    </div>
+                `;
+                
+                modalDetalhes.style.display = 'block';
+            } catch (error) {
+                console.error('Erro:', error);
+                alert('Erro ao carregar detalhes do paciente');
+            }
+        }
+
+
+        function calcularIdade(dataNascimento) {
+            const hoje = new Date();
+            const nascimento = new Date(dataNascimento);
+            let idade = hoje.getFullYear() - nascimento.getFullYear();
+            const m = hoje.getMonth() - nascimento.getMonth();
+            
+            if (m < 0 || (m === 0 && hoje.getDate() < nascimento.getDate())) {
+                idade--;
+            }
+            
+            return idade;
+        }
+
+        async function cancelarAgendamento(id) {
+            if (!confirm('Tem certeza que deseja cancelar este agendamento?')) return;
+
+            try {
+                const response = await fetch(`${API_URL}/agendamentos/${id}/cancelar`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.message || 'Erro ao cancelar agendamento');
+                }
+
+                alert('Agendamento cancelado com sucesso!');
+                if (tipoUsuario === 'paciente') {
+                    await carregarAgendamentosPaciente();
+                } else {
+                    await carregarAgendamentosMedico();
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                alert(error.message || 'Erro ao cancelar agendamento');
+            }
+        }
+
+        let agendamentoEmEdicao = null;
+        let dadosAgendamentoAtual = null;
+
+    
+        function abrirModalEdicao(dados) {
+        if (!dados || !dados.id) {
+            console.error('Dados inválidos para edição');
+            alert('Erro ao abrir edição. Tente novamente.');
+            return;
+        
+        }
+    
+        function fecharModal() {
+            const modal = document.getElementById('editModal');
+            if (modal) {
+                modal.style.display = 'none';
+            
+                const form = document.getElementById('editForm');
+                if (form) {
+                    form.reset();
+                }
+            
+                agendamentoEmEdicao = null;
+                dadosAgendamentoAtual = null;
+            }
+        }
+
+    
+        function fecharModaldetalhes() {
+            const modal = document.getElementById('modalDetalhes');
+            if (modal) {
+                modal.style.display = 'none';
+            }
+        }
+
+        
+        async function concluirConsulta(idAgendamento) {
+            try {
+                const response = await fetch(`${API_URL}/agendamentos/${idAgendamento}/concluir`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.message || 'Erro ao concluir consulta');
+                }
+
+                alert('Consulta marcada como concluída com sucesso!');
+                fecharModaldetalhes();
+                await carregarAgendamentosMedico();
+            } catch (error) {
+                console.error('Erro:', error);
+                alert(error.message || 'Erro ao concluir consulta');
+            }
+        }
+        
+
+        agendamentoEmEdicao = dados.id;
+            
+            
+            fetch(`${API_URL}/agendamentos/buscar/${dados.id}`, {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                }
+            })
+            .then(response => {
+                if (!response.ok) throw new Error('Erro ao buscar dados do agendamento');
+                return response.json();
+            })
+            .then(agendamento => {
+                if (!agendamento || !agendamento.idmedico) {
+                    throw new Error('Dados do agendamento incompletos');
+                }
+                dadosAgendamentoAtual = agendamento;
+                document.getElementById('editModal').style.display = 'block';
+                
+                const modalContent = document.querySelector('.modal-content');
+                modalContent.querySelector('.info-medico')?.remove();
+                
+                const infoMedico = document.createElement('div');
+                infoMedico.className = 'info-medico';
+                infoMedico.innerHTML = `
+                    <div class="form-group">
+                        <strong>Médico:</strong> ${dados.medico}<br>
+                        <strong>Especialidade:</strong> ${dados.especialidade}
+                    </div>
+                `;
+                modalContent.insertBefore(infoMedico, document.getElementById('editForm'));
+                
+                carregarDisponibilidadeMedicoParaEdicao(dados.id);
+            })
+            .catch(error => {
+                console.error('Erro:', error);
+                alert('Erro ao carregar dados do agendamento. Tente novamente.');
+                fecharModal();
+            });
+        }
+
+        
+        if (editForm) {
+            editForm.onsubmit = async (e) => {
+                e.preventDefault();
+                
+                
+                const novaData = document.getElementById('novaData').value;
+                const novoHorario = document.getElementById('novoHorario').value;
+
+                if (!dadosAgendamentoAtual || !dadosAgendamentoAtual.idmedico) {
+                    alert('Erro: Dados do agendamento não encontrados. Tente novamente.');
+                    return;
+                }
+
+                try {
+                    
+                    const verificacaoResponse = await fetch(`${API_URL}/agendamentos/verificar-disponibilidade`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                        },
+                        body: JSON.stringify({
+                            idAgendamento: agendamentoEmEdicao,
+                            idMedico: dadosAgendamentoAtual.idmedico,
+                            dataConsulta: novaData,
+                            horaConsulta: novoHorario,
+                        })
+                    });
+
+                    if (!verificacaoResponse.ok) {
+                        const error = await verificacaoResponse.json();
+                        throw new Error(error.message || 'Erro ao verificar disponibilidade');
+                    }
+
+                    
+                    const response = await fetch(`${API_URL}/agendamentos/${agendamentoEmEdicao}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                        },
+                        body: JSON.stringify({
+                            dataConsulta: novaData,
+                            horaConsulta: novoHorario
+                        })
+                    });
+
+                    if (!response.ok) {
+                        const error = await response.json();
+                        throw new Error(error.message || 'Erro ao atualizar agendamento');
+                    }
+
+                    alert('Agendamento atualizado com sucesso!');
+                    fecharModal();
+                    
+                    if (tipoUsuario === 'paciente') {
+                        await carregarAgendamentosPaciente();
+                    } else {
+                        await carregarAgendamentosMedico();
+                    }
+                } catch (error) {
+                    console.error('Erro:', error);
+                    alert(error.message || 'Erro ao atualizar agendamento');
+                }
+            };
+        }
+
+        async function carregarDisponibilidadeMedicoParaEdicao(idAgendamento) {
+            try {
+                const response = await fetch(`${API_URL}/agendamentos/buscar/${idAgendamento}`, {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Erro ao carregar dados do agendamento');
+                }
+
+                const agendamento = await response.json();
+                
+                
+                console.log('Dados do agendamento:', agendamento);
+                
+                if (!agendamento.idmedico) {
+                    throw new Error('ID do médico não encontrado no agendamento');
+                }
+
+                const dispResponse = await fetch(`${API_URL}/agendamentos/disponibilidade/${agendamento.idmedico}`, {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!dispResponse.ok) {
+                    throw new Error('Erro ao carregar disponibilidade');
+                }
+
+                const disponibilidade = await dispResponse.json();
+                console.log('Disponibilidade:', disponibilidade);
+                
+                if (disponibilidade && disponibilidade.length > 0) {
+                    configurarDatasDisponiveis(disponibilidade);
+                } else {
+                    alert('Não foi possível encontrar horários disponíveis para este médico');
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                alert('Erro ao carregar disponibilidade do médico: ' + error.message);
+            }
+        }
+
+        async function carregarHorariosDisponiveis(data, disponibilidade) {
+            const horariosSelect = document.getElementById('novoHorario');
+            horariosSelect.innerHTML = '';
+
+            try {
+                const dataFormatada = data.toISOString().split('T')[0];
+                
+                
+                console.log('Disponibilidade:', disponibilidade);
+                console.log('Data formatada:', dataFormatada);
+                
+                
+                if (!disponibilidade || !disponibilidade[0] || !disponibilidade[0].idmedico) {
+                    throw new Error('Dados do médico não disponíveis');
+                }
+
+                
+                const url = `${API_URL}/agendamentos/verificar-horarios-ocupados`.replace('/api/api/', '/api/');
+                
+                console.log('Fazendo requisição para:', url);
+                
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                    },
+                    body: JSON.stringify({
+                        idMedico: disponibilidade[0].idmedico,
+                        data: dataFormatada,
+                        ignorarCancelados: true
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('Resposta do servidor:', errorText);
+                    throw new Error('Erro ao buscar horários ocupados');
+                }
+
+                const responseData = await response.json();
+                console.log('Resposta recebida:', responseData);
+
+                let diaSemanaJS = data.getDay();
+                let diaSemana = diaSemanaJS === 0 ? 7 : diaSemanaJS + 1;
+                
+                const disponibilidadeDia = disponibilidade.filter(d => d.diasemana === diaSemana);
+                
+                if (disponibilidadeDia.length > 0) {
+                    disponibilidadeDia.forEach(disp => {
+                        const inicio = new Date(`2000-01-01 ${disp.horainicio}`);
+                        const fim = new Date(`2000-01-01 ${disp.horafim}`);
+                        
+                        let horarioAtual = new Date(inicio);
+                        while (horarioAtual < fim) {
+                            const horarioStr = horarioAtual.toTimeString().slice(0, 5);
+                            
+                            if (!responseData.horariosOcupados.includes(horarioStr)) {
+                                const option = document.createElement('option');
+                                option.value = horarioStr;
+                                option.textContent = horarioStr;
+                                horariosSelect.appendChild(option);
+                            }
+                            
+                            horarioAtual.setMinutes(horarioAtual.getMinutes() + 30);
+                        }
+                    });
+
+                    if (horariosSelect.options.length === 0) {
+                        const option = document.createElement('option');
+                        option.textContent = 'Todos os horários ocupados';
+                        horariosSelect.appendChild(option);
+                    }
+                } else {
+                    const option = document.createElement('option');
+                    option.textContent = 'Nenhum horário disponível';
+                    horariosSelect.appendChild(option);
+                }
+            } catch (error) {
+                console.error('Erro detalhado:', error);
+                throw new Error('Erro ao carregar horários disponíveis');
+            }
+        }
+
+
+        function configurarDatasDisponiveis(disponibilidade) {
+            const dataInput = document.getElementById('novaData');
+            const hoje = new Date();
+            dataInput.min = hoje.toISOString().split('T')[0];
+            
+            
+            const diasDisponiveis = [...new Set(disponibilidade.map(d => d.diasemana))];
+            console.log('Dias disponíveis do banco:', diasDisponiveis);
+            
+            dataInput.onchange = function() {
+                const selectedDate = new Date(this.value);
+                
+                let diaSemanaJS = selectedDate.getDay();
+                
+                let diaSemana = diaSemanaJS === 0 ? 7 : diaSemanaJS + 1;
+                
+                console.log('Data selecionada:', this.value);
+                console.log('Dia da semana do JavaScript:', diaSemanaJS);
+                console.log('Dia da semana ajustado para o banco:', diaSemana);
+                
+                if (!diasDisponiveis.includes(diaSemana)) {
+                    this.value = '';
+                    alert('O médico não atende neste dia. Por favor, selecione outra data.');
+                    return;
+                }
+                
+                carregarHorariosDisponiveis(selectedDate, disponibilidade);
+            };
+        }
+        window.onclick = function(event) {
+            const editModal = document.getElementById('editModal');
+            const detalhesModal = document.getElementById('modalDetalhes');
+            
+            if (event.target === editModal) {
+                fecharModal();
+            }
+            if (event.target === detalhesModal) {
+                fecharModaldetalhes();
+            }
+        }
+
+        window.onload = function() {
+            verificarAutenticacao();
+            
+            const editForm = document.getElementById('editForm');
+            if (editForm) {
+                editForm.onsubmit = async (e) => {
+                    e.preventDefault();
+                    
+                    const novaData = document.getElementById('novaData').value;
+                    const novoHorario = document.getElementById('novoHorario').value;
+
+                    try {
+                        
+                        if (!dadosAgendamentoAtual || !dadosAgendamentoAtual.idmedico) {
+                            throw new Error('Dados do agendamento não encontrados');
+                        }
+
+                        
+                        const verificacaoResponse = await fetch(`${API_URL}/agendamentos/verificar-disponibilidade`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                            },
+                            body: JSON.stringify({
+                                idAgendamento: agendamentoEmEdicao,
+                                idMedico: dadosAgendamentoAtual.idmedico, 
+                                dataConsulta: novaData,
+                                horaConsulta: novoHorario
+                            })
+                        });
+
+
+                        if (!verificacaoResponse.ok) {
+                            const error = await verificacaoResponse.json();
+                            throw new Error(error.message || 'Erro ao verificar disponibilidade');
+                        }
+
+                        
+                        const response = await fetch(`${API_URL}/agendamentos/${agendamentoEmEdicao}`, {
+                            method: 'PUT',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                            },
+                            body: JSON.stringify({
+                                dataConsulta: novaData,
+                                horaConsulta: novoHorario
+                            })
+                        });
+
+                        if (!response.ok) {
+                            const error = await response.json();
+                            throw new Error(error.message || 'Erro ao atualizar agendamento');
+                        }
+
+                        alert('Agendamento atualizado com sucesso!');
+                        fecharModal();
+                        
+                        
+                        if (tipoUsuario === 'paciente') {
+                            await carregarAgendamentosPaciente();
+                        } else {
+                            await carregarAgendamentosMedico();
+                        }
+                    } catch (error) {
+                        console.error('Erro:', error);
+                        alert(error.message || 'Erro ao atualizar agendamento');
+                    }
+                };
+            }
+        };
+    </script>
+</html>

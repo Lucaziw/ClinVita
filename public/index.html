@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Página Inicial</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f4f4f9;
+        }
+        a {
+            display: inline-block;
+            margin: 20px;
+            padding: 10px 20px;
+            text-decoration: none;
+            background-color: #007BFF;
+            color: white;
+            border-radius: 5px;
+        }
+        a:hover {
+            background-color: #0056b3;
+        }
+        .opcoes {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>Bem-vindo ao Sistema de Consultas</h1>
+    <div id="opcoes-paciente" class="opcoes">
+        <p>Paciente</p>
+        <a href="acompanharAgendamento.html">Acompanhar Consulta</a>
+        <a href="agendar.html">Nova Consulta</a>
+    </div>
+    <div id="opcoes-atendente" class="opcoes">
+        <p>Atendente</p>
+        <a href="buscar-cpf.html">Buscar Agendamentos por CPF</a>
+        <a href="graficos.html">Ver Gráficos de Agendamentos</a>
+    </div>
+    <div id="opcoes-medico" class="opcoes">
+        <p>Médico</p>
+        <a href="disponibilidade.html">Minha Disponibilidade</a>
+        <a href="acompanharAgendamento.html">Minhas Consultas</a>
+        <a href="graficos-medico.html">Ver Gráficos de Consultas</a>
+    </div>
+    <div id="opcoes-administrador" class="opcoes">
+        <p>Gerente</p>
+        <a href="gerenciar-funcionarios.html">Gerenciar funcionarios</a>
+        <a href="buscar-cpf.html">Buscar Agendamentos por CPF</a>
+        <a href="agendamentos-area.html">Minhas Consultas</a>
+        <a href="graficos.html">Ver Gráficos de Consultas</a>
+    </div>
+
+    <script>
+
+        function decodeToken(token) {
+            if (!token) return null;
+            try {
+                const payload = JSON.parse(atob(token.split('.')[1])); 
+                return payload;
+            } catch (err) {
+                console.error('Erro ao decodificar o token:', err);
+                return null;
+            }
+        }
+
+        const token = localStorage.getItem('authToken');
+
+        const userData = decodeToken(token);
+        console.log('userData:', userData);
+        console.log('tipousuario:', userData ? userData.tipoUsuario : 'Sem dados');
+
+    
+        if (!userData) {
+            alert('Você precisa fazer login.');
+            window.location.href = 'login.html';
+        } else {
+ 
+            if (userData.tipoUsuario === 'paciente') {
+                document.getElementById('opcoes-paciente').style.display = 'block';
+            } else if (userData.tipoUsuario === 'atendente') {
+                document.getElementById('opcoes-atendente').style.display = 'block';
+            } else if (userData.tipoUsuario === 'medico') {
+                document.getElementById('opcoes-medico').style.display = 'block';
+            }else if (userData.tipoUsuario === 'administrador') {
+                document.getElementById('opcoes-administrador').style.display = 'block';
+            }
+        }
+    </script>
+</body>
+</html>
