@@ -172,7 +172,7 @@
         </form>
 
         <div class="texto-link">
-            <p>Já tem uma conta? <a href="c:\\Users\\thefo\\OneDrive\\Desktop\\novoclin\\ClinVita\\public\\login.html">Entre aqui</a></p>
+            <p>Já tem uma conta? <a href="C:\\Users\\20211214010046\\Desktop\\ClinVita\\public\\login.html">Entre aqui</a></p>
         </div>
     </div>
 
@@ -230,6 +230,7 @@
 
                 if (response.ok) {
                     alert('Cadastro concluído com sucesso!');
+                    window.location.href = 'login.html';
                 } else {
                     const error = await response.json();
                     alert('Erro: ' + error.error);

@@ -22,7 +22,7 @@ router.post('/horarios-ocupados', agendamentoController.verificarHorariosOcupado
 router.post('/verificar-horarios-ocupados', agendamentoController.verificarHorariosOcupados);
 router.post('/verificar-disponibilidade', agendamentoController.verificarDisponibilidade);
 
-router.get('agendamentos/especialidades', agendamentoController.listarEspecialidades);
+router.get('/especialidades', agendamentoController.listarEspecialidades);
 router.get('/especialidades/:idMedico', agendamentoController.listarEspecialidades);
 router.get('/medicos/:idEspecialidade', agendamentoController.listarMedicosPorEspecialidade);
 

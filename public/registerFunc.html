@@ -94,6 +94,8 @@
                 <option value="1">Cardiologista</option>
                 <option value="2">Urologista</option>
                 <option value="3">Pediatra</option>
+                <option value="4">Cirugião</option>
+                <option value="5">Ortopedista</option>
             </select>
             <input type="text" id="crm" placeholder="CRM">
         </div>
@@ -174,6 +176,7 @@
 
                 if (response.ok) {
                     alert('Cadastro concluído com sucesso!');
+                    window.location.href = 'login.html';
                 } else {
                     const error = await response.json();
                     alert('Erro: ' + error.error);
